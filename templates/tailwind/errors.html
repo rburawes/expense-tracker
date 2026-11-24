@@ -1,0 +1,6 @@
+{% if form.non_field_errors %}
+<div class="mb-4 rounded-lg bg-rose-50 p-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-200" role="alert">
+  {% if form_error_title %}<p class="font-semibold">{{ form_error_title }}</p>{% endif %}
+  {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+</div>
+{% endif %}

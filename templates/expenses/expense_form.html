@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}{% if expense %}Edit expense{% else %}Add expense{% endif %}{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-lg">
+  <h1 class="text-2xl font-semibold tracking-tight">{% if expense %}Edit expense{% else %}Add expense{% endif %}</h1>
+  <div class="card mt-6">{% include "expenses/partials/_expense_form.html" %}</div>
+</div>
+{% endblock %}

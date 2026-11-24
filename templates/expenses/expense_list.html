@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Expenses{% endblock %}
+{% block content %}
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <h1 class="text-2xl font-semibold tracking-tight">Expenses</h1>
+    <p class="mt-1 text-sm text-slate-500">Search, filter, edit and export your spending history.</p>
+  </div>
+</div>
+
+<form id="filter-form" method="get" action="{% url 'expenses:list' %}" role="search"
+      class="card mt-6 p-4"
+      x-data="{ showMore: {% if filter_form.date_from.value or filter_form.date_to.value or filter_form.sort.value %}true{% else %}false{% endif %} }"
+      hx-get="{% url 'expenses:list' %}" hx-target="#results" hx-push-url="true" hx-indicator="#results"
+      hx-trigger="input changed delay:350ms from:#id_q, change[target.name!='q'], submit">
+  <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_200px_180px_auto]">
+    <div class="relative">
+      <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">{% icon "search" "size-4" %}</span>
+      <input type="search" name="q" id="id_q" value="{{ filter_form.q.value|default:'' }}" placeholder="Search descriptions…"
+             autocomplete="off" class="{{ filter_form.q.field.widget.attrs.class }} pl-9" aria-label="Search descriptions">
+    </div>
+    <div><label for="id_category" class="sr-only">Category</label>{{ filter_form.category }}</div>
+    <div>
+      <label for="id_preset" class="sr-only">Period</label>
+      <select name="preset" id="id_preset" class="{{ filter_form.preset.field.widget.attrs.class }}"
+              @change="if ($event.target.value) { $refs.from.value = ''; $refs.to.value = '' }">
+        {% for value, label in filter_form.fields.preset.choices %}
+          <option value="{{ value }}" {% if filter_form.preset.value == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="flex gap-2">
+      <button type="button" class="btn-secondary flex-1 lg:flex-none" @click="showMore = !showMore" :aria-expanded="showMore">
+        {% icon "filter" "size-4" %} More
+      </button>
+      <a href="{% url 'expenses:list' %}" class="btn-secondary flex-1 lg:flex-none"
+         hx-get="{% url 'expenses:list' %}" hx-target="#results" hx-push-url="true"
+         @click="$el.closest('form').reset(); $el.closest('form').querySelectorAll('input,select').forEach(i => i.value = '')">Reset</a>
+    </div>
+  </div>
+  <div x-cloak x-show="showMore" class="mt-3 grid grid-cols-1 gap-3 border-t border-slate-100 pt-3 sm:grid-cols-3">
+    <div>
+      <label for="id_date_from" class="mb-1 block text-xs font-medium text-slate-500">From</label>
+      <input type="date" name="date_from" id="id_date_from" x-ref="from" value="{{ filter_form.date_from.value|default:'' }}"
+             class="{{ filter_form.date_from.field.widget.attrs.class }}" @change="document.getElementById('id_preset').value = ''">
+    </div>
+    <div>
+      <label for="id_date_to" class="mb-1 block text-xs font-medium text-slate-500">To</label>
+      <input type="date" name="date_to" id="id_date_to" x-ref="to" value="{{ filter_form.date_to.value|default:'' }}"
+             class="{{ filter_form.date_to.field.widget.attrs.class }}" @change="document.getElementById('id_preset').value = ''">
+    </div>
+    <div>
+      <label for="id_sort" class="mb-1 block text-xs font-medium text-slate-500">Sort by</label>
+      {{ filter_form.sort }}
+    </div>
+  </div>
+  <noscript><button type="submit" class="btn-primary mt-3">Apply filters</button></noscript>
+</form>
+
+<div id="results" class="mt-6"
+     hx-get="{% url 'expenses:list' %}" hx-include="#filter-form, #current-page" hx-trigger="expenses-changed from:body" hx-target="this">
+  {% include "expenses/partials/_expense_results.html" %}
+</div>
+{% endblock %}

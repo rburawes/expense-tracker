@@ -1,0 +1,103 @@
+{% load money ui %}
+<input type="hidden" id="current-page" name="page" value="{{ page_obj.number }}">
+{% if filter_form.errors %}
+<div class="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800 ring-1 ring-inset ring-amber-200" role="alert">
+  {% for field, errors in filter_form.errors.items %}{% for e in errors %}<p>{{ e }}</p>{% endfor %}{% endfor %}
+  <p class="mt-1 text-amber-700">Showing unfiltered results.</p>
+</div>
+{% endif %}
+
+<div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+  <p class="text-sm text-slate-600">
+    <span class="font-semibold text-slate-900">{{ total_count }}</span> expense{{ total_count|pluralize }}
+    {% if is_filtered %}matching your filters{% endif %}
+    · total <span class="font-semibold tabular-nums text-slate-900">{{ total_amount|currency }}</span>
+  </p>
+  <a href="{% url 'expenses:export' %}{% if querystring %}?{{ querystring }}{% endif %}" class="btn-secondary" download>
+    {% icon "download" "size-4" %} Export CSV
+  </a>
+</div>
+
+{% if expenses %}
+<div class="card overflow-hidden">
+  {# Desktop table #}
+  <table class="hidden w-full text-sm md:table">
+    <thead class="bg-slate-50 text-left text-xs font-medium tracking-wide text-slate-500 uppercase">
+      <tr>
+        <th scope="col" class="px-5 py-3">Date</th>
+        <th scope="col" class="px-5 py-3">Description</th>
+        <th scope="col" class="px-5 py-3">Category</th>
+        <th scope="col" class="px-5 py-3 text-right">Amount</th>
+        <th scope="col" class="px-5 py-3"><span class="sr-only">Actions</span></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for expense in expenses %}
+      <tr class="group transition hover:bg-slate-50/70">
+        <td class="px-5 py-3.5 whitespace-nowrap text-slate-500">{{ expense.date|date:"M j, Y" }}</td>
+        <td class="max-w-md truncate px-5 py-3.5 font-medium text-slate-900" title="{{ expense.description }}">{{ expense.description }}</td>
+        <td class="px-5 py-3.5">{% include "components/category_badge.html" %}</td>
+        <td class="px-5 py-3.5 text-right font-semibold tabular-nums whitespace-nowrap">{{ expense.amount|currency }}</td>
+        <td class="px-5 py-3.5">
+          <div class="flex justify-end gap-1 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+            <a href="{% url 'expenses:update' expense.pk %}" hx-get="{% url 'expenses:update' expense.pk %}" hx-target="#modal-root" class="btn-ghost" title="Edit">{% icon "pencil" "size-4" %}<span class="sr-only">Edit {{ expense.description }}</span></a>
+            <a href="{% url 'expenses:delete' expense.pk %}" hx-get="{% url 'expenses:delete' expense.pk %}" hx-target="#modal-root" class="btn-ghost hover:bg-rose-50! hover:text-rose-600!" title="Delete">{% icon "trash" "size-4" %}<span class="sr-only">Delete {{ expense.description }}</span></a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {# Mobile list #}
+  <ul class="divide-y divide-slate-100 md:hidden">
+    {% for expense in expenses %}
+    <li class="flex items-center gap-3 px-4 py-3">
+      <span class="size-2.5 shrink-0 rounded-full {{ expense.category_meta.dot }}"></span>
+      <div class="min-w-0 flex-1">
+        <p class="truncate text-sm font-medium text-slate-900">{{ expense.description }}</p>
+        <p class="text-xs text-slate-500">{{ expense.date|date:"M j, Y" }} · {{ expense.get_category_display }}</p>
+      </div>
+      <p class="text-sm font-semibold tabular-nums">{{ expense.amount|currency }}</p>
+      <div class="flex">
+        <a href="{% url 'expenses:update' expense.pk %}" hx-get="{% url 'expenses:update' expense.pk %}" hx-target="#modal-root" class="btn-ghost">{% icon "pencil" "size-4" %}<span class="sr-only">Edit</span></a>
+        <a href="{% url 'expenses:delete' expense.pk %}" hx-get="{% url 'expenses:delete' expense.pk %}" hx-target="#modal-root" class="btn-ghost">{% icon "trash" "size-4" %}<span class="sr-only">Delete</span></a>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+
+{% if page_obj.paginator.num_pages > 1 %}
+<nav class="mt-4 flex items-center justify-between" aria-label="Pagination">
+  <p class="text-sm text-slate-500">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</p>
+  <div class="flex gap-2">
+    {% if page_obj.has_previous %}
+      {% with url_q=querystring|default:"" %}
+      <a class="btn-secondary" href="?{% if url_q %}{{ url_q }}&{% endif %}page={{ page_obj.previous_page_number }}"
+         hx-get="?{% if url_q %}{{ url_q }}&{% endif %}page={{ page_obj.previous_page_number }}" hx-target="#results" hx-push-url="true">{% icon "chevron-left" "size-4" %} Previous</a>
+      {% endwith %}
+    {% endif %}
+    {% if page_obj.has_next %}
+      {% with url_q=querystring|default:"" %}
+      <a class="btn-secondary" href="?{% if url_q %}{{ url_q }}&{% endif %}page={{ page_obj.next_page_number }}"
+         hx-get="?{% if url_q %}{{ url_q }}&{% endif %}page={{ page_obj.next_page_number }}" hx-target="#results" hx-push-url="true">Next {% icon "chevron-right" "size-4" %}</a>
+      {% endwith %}
+    {% endif %}
+  </div>
+</nav>
+{% endif %}
+
+{% else %}
+<div class="card flex flex-col items-center px-6 py-16 text-center">
+  <span class="grid size-12 place-items-center rounded-full bg-slate-100 text-slate-400">{% icon "inbox" "size-6" %}</span>
+  {% if is_filtered %}
+    <h3 class="mt-4 text-sm font-semibold text-slate-900">No matching expenses</h3>
+    <p class="mt-1 text-sm text-slate-500">Try adjusting your search or filters.</p>
+  {% else %}
+    <h3 class="mt-4 text-sm font-semibold text-slate-900">No expenses yet</h3>
+    <p class="mt-1 text-sm text-slate-500">Add your first expense to start tracking your spending.</p>
+    <a href="{% url 'expenses:create' %}" hx-get="{% url 'expenses:create' %}" hx-target="#modal-root" class="btn-primary mt-5">{% icon "plus" "size-4" %} Add expense</a>
+  {% endif %}
+</div>
+{% endif %}

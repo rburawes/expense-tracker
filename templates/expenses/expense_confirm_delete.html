@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Delete expense{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-lg">
+  <h1 class="text-2xl font-semibold tracking-tight">Delete expense?</h1>
+  <div class="card mt-6">{% include "expenses/partials/_delete_body.html" %}</div>
+</div>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Dashboard{% endblock %}
+{% block extra_head %}<script src="{% static 'vendor/chart.umd.min.js' %}" defer></script>{% endblock %}
+{% block content %}
+<div id="dashboard-content">
+  {% include "expenses/partials/_dashboard_content.html" %}
+</div>
+{% endblock %}

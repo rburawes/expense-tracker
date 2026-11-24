@@ -1,0 +1,21 @@
+{% load money %}
+<form method="post" action="{% url 'expenses:delete' expense.pk %}" hx-post="{% url 'expenses:delete' expense.pk %}" hx-disabled-elt="find button[type=submit]">
+  {% csrf_token %}
+  <div class="px-5 py-5 sm:px-6">
+    <p class="text-sm text-slate-600">This will permanently delete the following expense. This can't be undone.</p>
+    <dl class="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 rounded-xl bg-slate-50 p-4 text-sm ring-1 ring-slate-200">
+      <dt class="text-slate-500">Description</dt><dd class="font-medium text-slate-900">{{ expense.description }}</dd>
+      <dt class="text-slate-500">Amount</dt><dd class="font-medium tabular-nums text-slate-900">{{ expense.amount|currency }}</dd>
+      <dt class="text-slate-500">Date</dt><dd class="text-slate-900">{{ expense.date|date:"M j, Y" }}</dd>
+      <dt class="text-slate-500">Category</dt><dd>{% include "components/category_badge.html" %}</dd>
+    </dl>
+  </div>
+  <div class="flex flex-col-reverse gap-2 rounded-b-2xl border-t border-slate-100 bg-slate-50/60 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+    {% if request.htmx %}
+      <button type="button" class="btn-secondary" @click="$dispatch('close-modal')">Cancel</button>
+    {% else %}
+      <a href="{% url 'expenses:list' %}" class="btn-secondary">Cancel</a>
+    {% endif %}
+    <button type="submit" class="btn-danger" autofocus><span class="spinner htmx-indicator"></span>Delete expense</button>
+  </div>
+</form>

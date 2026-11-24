@@ -1,0 +1,17 @@
+{% extends "registration/_auth_layout.html" %}
+{% load crispy_forms_tags %}
+{% block title %}Sign in{% endblock %}
+{% block heading %}Sign in to your account{% endblock %}
+{% block subheading %}Track every dollar, effortlessly.{% endblock %}
+{% block form %}
+<form method="post" novalidate x-data="{ busy: false }" @submit="busy = true">
+  {% csrf_token %}
+  {% if form.non_field_errors %}
+    <div class="mb-4 rounded-lg bg-rose-50 p-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-200" role="alert">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>
+  {% endif %}
+  {% for field in form %}{{ field|as_crispy_field }}{% endfor %}
+  <input type="hidden" name="next" value="{{ next }}">
+  <button type="submit" class="btn-primary mt-2 w-full" :disabled="busy"><span class="spinner" x-show="busy" x-cloak></span>Sign in</button>
+</form>
+{% endblock %}
+{% block footer %}New here? <a href="{% url 'signup' %}" class="font-semibold text-indigo-600 hover:text-indigo-500">Create an account</a>{% endblock %}

@@ -1,0 +1,23 @@
+{% comment %}
+  Project override of crispy-tailwind's field template. Widgets carry their own
+  classes (see expenses.forms.INPUT_CLASSES) so all styling stays scannable by Tailwind.
+{% endcomment %}
+{% if field.is_hidden %}
+  {{ field }}
+{% else %}
+<div id="div_{{ field.auto_id }}" class="{% if wrapper_class %}{{ wrapper_class }} {% endif %}mb-4">
+  {% if field.label and form_show_labels %}
+    <label for="{{ field.id_for_label }}" class="mb-1.5 block text-sm font-medium text-slate-700">
+      {{ field.label|safe }}{% if field.field.required %}<span class="ml-0.5 text-rose-500" aria-hidden="true">*</span>{% endif %}
+    </label>
+  {% endif %}
+  {{ field }}
+  {% if field.errors %}
+    {% for error in field.errors %}
+      <p id="error_{{ forloop.counter }}_{{ field.auto_id }}" class="mt-1.5 text-sm text-rose-600">{{ error }}</p>
+    {% endfor %}
+  {% elif field.help_text %}
+    <p id="hint_{{ field.auto_id }}" class="mt-1.5 text-xs text-slate-500">{{ field.help_text|safe }}</p>
+  {% endif %}
+</div>
+{% endif %}

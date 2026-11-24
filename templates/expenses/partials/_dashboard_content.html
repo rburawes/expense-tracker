@@ -1,0 +1,151 @@
+{% load money ui humanize %}
+{# Re-fetch this period's data whenever an expense is added, edited or deleted. #}
+<div hidden hx-get="{% url 'expenses:dashboard' %}?period={{ period }}" hx-trigger="expenses-changed from:body" hx-target="#dashboard-content"></div>
+
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <h1 class="text-2xl font-semibold tracking-tight">Hi {{ user.get_short_name|default:user.username }} 👋</h1>
+    <p class="mt-1 text-sm text-slate-500">
+      {{ period_label }} · {{ start|date:"M j, Y" }} – {{ end|date:"M j, Y" }}
+    </p>
+  </div>
+  <div class="grid w-full grid-cols-4 rounded-xl bg-slate-200/60 p-1 text-xs font-medium sm:inline-flex sm:w-auto sm:text-sm" role="tablist" aria-label="Period">
+    {% for key, label in periods.items %}
+      <a href="?period={{ key }}" hx-get="?period={{ key }}" hx-target="#dashboard-content" hx-push-url="true" hx-indicator="#dashboard-content"
+         role="tab" aria-selected="{% if key == period %}true{% else %}false{% endif %}"
+         class="rounded-lg px-2 py-1.5 text-center whitespace-nowrap transition sm:px-3 {% if key == period %}bg-white text-slate-900 shadow-xs{% else %}text-slate-600 hover:text-slate-900{% endif %}">{{ label }}</a>
+    {% endfor %}
+  </div>
+</div>
+
+{% if not all_time_count %}
+<div class="card mt-6 flex flex-col items-center px-6 py-16 text-center">
+  <span class="grid size-14 place-items-center rounded-2xl bg-indigo-50 text-indigo-600">{% icon "wallet" "size-7" %}</span>
+  <h2 class="mt-5 text-lg font-semibold">Welcome to Ledgerly</h2>
+  <p class="mt-1 max-w-sm text-sm text-slate-500">Add your first expense and your dashboard will come alive with summaries and charts.</p>
+  <a href="{% url 'expenses:create' %}" hx-get="{% url 'expenses:create' %}" hx-target="#modal-root" class="btn-primary mt-6">{% icon "plus" "size-4" %} Add your first expense</a>
+</div>
+{% else %}
+
+{# Summary cards #}
+<section class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Summary">
+  <div class="card p-5">
+    <div class="flex items-center justify-between">
+      <p class="text-sm font-medium text-slate-500">Total spent</p>
+      <span class="grid size-9 place-items-center rounded-lg bg-indigo-50 text-indigo-600">{% icon "wallet" "size-5" %}</span>
+    </div>
+    <p class="mt-3 text-2xl font-semibold tracking-tight tabular-nums">{{ period_total|currency }}</p>
+    <p class="mt-1 text-xs text-slate-500">{{ period_count|intcomma }} expense{{ period_count|pluralize }} · {{ period_label|lower }}</p>
+  </div>
+
+  <div class="card p-5">
+    <div class="flex items-center justify-between">
+      <p class="text-sm font-medium text-slate-500">This month</p>
+      <span class="grid size-9 place-items-center rounded-lg bg-sky-50 text-sky-600">{% icon "calendar" "size-5" %}</span>
+    </div>
+    <p class="mt-3 text-2xl font-semibold tracking-tight tabular-nums">{{ this_month_total|currency }}</p>
+    <p class="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
+      {% if month_change is not None %}
+        <span class="rounded-md px-1.5 py-0.5 font-semibold {% if month_change > 0 %}bg-rose-50 text-rose-700{% else %}bg-emerald-50 text-emerald-700{% endif %}">
+          {% if month_change > 0 %}▲{% else %}▼{% endif %} {{ month_change|abs_value|floatformat:0 }}%
+        </span>
+        vs. same time last month
+      {% else %}
+        Last month: {{ last_month_total|currency }}
+      {% endif %}
+    </p>
+  </div>
+
+  <div class="card p-5">
+    <div class="flex items-center justify-between">
+      <p class="text-sm font-medium text-slate-500">Daily average</p>
+      <span class="grid size-9 place-items-center rounded-lg bg-emerald-50 text-emerald-600">{% icon "chart" "size-5" %}</span>
+    </div>
+    <p class="mt-3 text-2xl font-semibold tracking-tight tabular-nums">{{ daily_average|currency }}</p>
+    <p class="mt-1 truncate text-xs text-slate-500">
+      Over {{ days }} day{{ days|pluralize }}{% if largest_expense %} · largest {{ largest_expense.amount|currency }}{% endif %}
+    </p>
+  </div>
+
+  <div class="card p-5">
+    <div class="flex items-center justify-between">
+      <p class="text-sm font-medium text-slate-500">Top category</p>
+      <span class="grid size-9 place-items-center rounded-lg bg-amber-50 text-amber-600">{% icon "tag" "size-5" %}</span>
+    </div>
+    {% if top_category %}
+      <p class="mt-3 flex items-center gap-2 text-2xl font-semibold tracking-tight">
+        <span class="size-2.5 rounded-full {{ top_category.dot }}"></span>{{ top_category.label }}
+      </p>
+      <p class="mt-1 text-xs text-slate-500">{{ top_category.total|currency }} · {{ top_category.percent|floatformat:0 }}% of spending</p>
+    {% else %}
+      <p class="mt-3 text-2xl font-semibold tracking-tight text-slate-300">—</p>
+      <p class="mt-1 text-xs text-slate-500">No spending in this period</p>
+    {% endif %}
+  </div>
+</section>
+
+{# Charts #}
+<section class="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+  <div class="card p-5 lg:col-span-2">
+    <div class="flex items-center justify-between">
+      <div>
+        <h2 class="text-sm font-semibold text-slate-900">Monthly spending</h2>
+        <p class="text-xs text-slate-500">Last 12 months</p>
+      </div>
+    </div>
+    <div class="relative mt-4 h-64"><canvas id="trend-chart" role="img" aria-label="Bar chart of monthly spending for the last 12 months"></canvas></div>
+  </div>
+
+  <div class="card p-5">
+    <h2 class="text-sm font-semibold text-slate-900">By category</h2>
+    <p class="text-xs text-slate-500">{{ period_label }}</p>
+    {% if categories %}
+      <div class="relative mx-auto mt-4 h-40 w-40">
+        <canvas id="category-chart" role="img" aria-label="Doughnut chart of spending by category"></canvas>
+        <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+          <span class="text-xs text-slate-500">Total</span>
+          <span class="text-sm font-semibold tabular-nums">{{ period_total|currency }}</span>
+        </div>
+      </div>
+      <ul class="mt-5 space-y-3">
+        {% for c in categories %}
+        <li>
+          <div class="flex items-center justify-between text-sm">
+            <span class="flex items-center gap-2 text-slate-700"><span class="size-2.5 rounded-full {{ c.dot }}"></span>{{ c.label }}</span>
+            <span class="tabular-nums"><span class="font-medium">{{ c.total|currency }}</span> <span class="text-xs text-slate-400">{{ c.percent|floatformat:0 }}%</span></span>
+          </div>
+          <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
+            <div class="h-full rounded-full" style="width: {{ c.percent|floatformat:1 }}%; background-color: {{ c.color }}"></div>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="flex h-48 items-center justify-center text-sm text-slate-400">No expenses in this period</div>
+    {% endif %}
+  </div>
+</section>
+
+{# Recent expenses #}
+<section class="card mt-6">
+  <div class="flex items-center justify-between px-5 py-4">
+    <h2 class="text-sm font-semibold text-slate-900">Recent expenses</h2>
+    <a href="{% url 'expenses:list' %}" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">View all →</a>
+  </div>
+  <ul class="divide-y divide-slate-100 border-t border-slate-100">
+    {% for expense in recent %}
+    <li class="flex items-center gap-4 px-5 py-3">
+      <div class="min-w-0 flex-1">
+        <p class="truncate text-sm font-medium text-slate-900">{{ expense.description }}</p>
+        <p class="text-xs text-slate-500">{{ expense.date|naturalday:"M j, Y"|capfirst }}</p>
+      </div>
+      <span class="hidden sm:inline-flex">{% include "components/category_badge.html" %}</span>
+      <p class="w-24 text-right text-sm font-semibold tabular-nums">{{ expense.amount|currency }}</p>
+      <a href="{% url 'expenses:update' expense.pk %}" hx-get="{% url 'expenses:update' expense.pk %}" hx-target="#modal-root" class="btn-ghost">{% icon "pencil" "size-4" %}<span class="sr-only">Edit</span></a>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{{ chart_data|json_script:"chart-data" }}

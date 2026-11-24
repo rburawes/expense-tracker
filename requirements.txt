@@ -1,0 +1,6 @@
+Django>=5.2,<6.0
+django-htmx==1.29.0
+django-crispy-forms==2.7
+crispy-tailwind==1.0.3
+django-tailwind-cli==4.10.0
+whitenoise==6.12.0

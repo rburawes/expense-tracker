@@ -1,0 +1,5 @@
+{% if expense %}
+  {% include "components/modal.html" with title="Edit expense" subtitle="Update the details of this expense." body_template="expenses/partials/_expense_form.html" %}
+{% else %}
+  {% include "components/modal.html" with title="Add expense" subtitle="Record a new purchase or payment." body_template="expenses/partials/_expense_form.html" %}
+{% endif %}
